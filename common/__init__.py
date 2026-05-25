@@ -1,0 +1,1 @@
+from common.assertion import assert_success
