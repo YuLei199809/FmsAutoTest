@@ -1,0 +1,5 @@
+"Status","Start Time","Stop Time","Duration in ms","Parent Suite","Suite","Sub Suite","Test Class","Test Method","Name","Description"
+"passed","Tue May 26 15:20:45 UTC 2026","Tue May 26 15:20:45 UTC 2026","4","tests","test_auth","TestAuth","","","test_login_success",""
+"passed","Tue May 26 15:20:45 UTC 2026","Tue May 26 15:20:45 UTC 2026","7","tests","test_fund","TestFund","","","test_get_accounts",""
+"passed","Tue May 26 15:20:45 UTC 2026","Tue May 26 15:20:45 UTC 2026","3","tests","test_auth","TestAuth","","","test_login_fail",""
+"passed","Tue May 26 15:20:45 UTC 2026","Tue May 26 15:20:45 UTC 2026","14","tests","test_fund","TestFund","","","test_apply_payment",""
