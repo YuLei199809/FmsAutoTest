@@ -27,4 +27,4 @@ jobs:
           sleep 3
 
       - name: 运行测试
-        run: pytest -m -v
+        run: pytest -v
