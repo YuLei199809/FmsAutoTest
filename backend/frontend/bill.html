@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>票据管理 — 司库资金管理系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f4f6fb; }
+    .page-section { background: #fff; border-radius: .75rem; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+    .nav-tabs .nav-link.active { font-weight: 600; }
+  </style>
+</head>
+<body>
+<div id="main-nav"></div>
+
+<div class="container-fluid py-4 px-4">
+  <h5 class="fw-bold mb-4">📄 票据管理</h5>
+
+  <div class="page-section p-3">
+    <ul class="nav nav-tabs mb-4" data-testid="bill-tabs">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-bill-list"
+                data-testid="tab-btn-bill-list">票据列表</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-create-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-bill-create"
+                data-testid="tab-btn-bill-create">录入票据</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bill-expiring"
+                data-testid="tab-btn-bill-expiring">即将到期</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- ① 票据列表 -->
+      <div class="tab-pane fade show active" id="tab-bill-list" data-testid="panel-bill-list">
+        <div class="d-flex gap-2 mb-3 flex-wrap">
+          <select id="filter-status" class="form-select form-select-sm" style="width:130px"
+                  data-testid="filter-status">
+            <option value="">全部状态</option>
+            <option value="holding">持有中</option>
+            <option value="endorsed">已背书</option>
+            <option value="discounted">已贴现</option>
+            <option value="overdue">已逾期</option>
+          </select>
+          <select id="filter-type" class="form-select form-select-sm" style="width:160px"
+                  data-testid="filter-type">
+            <option value="">全部类型</option>
+            <option value="银行承兑汇票">银行承兑汇票</option>
+            <option value="商业承兑汇票">商业承兑汇票</option>
+          </select>
+          <button id="bill-refresh" class="btn btn-sm btn-outline-secondary"
+                  data-testid="bill-refresh">刷新</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>票据号</th><th>类型</th><th>出票人</th><th>承兑人</th>
+                <th class="text-end">金额</th><th>出票日</th><th>到期日</th>
+                <th>状态</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="bill-tbody" data-testid="bill-table">
+              <tr><td colspan="9" class="text-center text-muted py-4">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ② 录入票据 -->
+      <div class="tab-pane fade" id="tab-bill-create" data-testid="panel-bill-create">
+        <div class="row justify-content-center">
+          <div class="col-12 col-lg-7">
+            <h6 class="fw-bold mb-3">录入新票据</h6>
+            <form id="create-bill-form" novalidate data-testid="create-bill-form">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">票据类型 <span class="text-danger">*</span></label>
+                  <select id="bill-type" class="form-select" data-testid="bill-type" required>
+                    <option value="">— 选择类型 —</option>
+                    <option value="银行承兑汇票">银行承兑汇票</option>
+                    <option value="商业承兑汇票">商业承兑汇票</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">出票人 <span class="text-danger">*</span></label>
+                  <input id="bill-drawer" type="text" class="form-control"
+                         placeholder="如：供应商A" data-testid="bill-drawer" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">承兑人 <span class="text-danger">*</span></label>
+                  <input id="bill-acceptor" type="text" class="form-control"
+                         placeholder="如：工商银行" data-testid="bill-acceptor" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">收款人 <span class="text-danger">*</span></label>
+                  <input id="bill-payee" type="text" class="form-control"
+                         placeholder="如：集团总部" data-testid="bill-payee" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">票据金额（CNY）<span class="text-danger">*</span></label>
+                  <input id="bill-amount" type="number" min="0.01" step="0.01"
+                         class="form-control" placeholder="0.00"
+                         data-testid="bill-amount" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">出票日 <span class="text-danger">*</span></label>
+                  <input id="bill-issue-date" type="date" class="form-control"
+                         data-testid="bill-issue-date" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">到期日 <span class="text-danger">*</span></label>
+                  <input id="bill-due-date" type="date" class="form-control"
+                         data-testid="bill-due-date" required>
+                </div>
+                <div class="col-12">
+                  <button id="create-bill-submit" type="submit"
+                          class="btn btn-primary px-4" data-testid="create-bill-submit">
+                    录入票据
+                  </button>
+                </div>
+              </div>
+            </form>
+            <div id="create-bill-result" class="alert mt-3 d-none"
+                 data-testid="create-bill-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ 即将到期 -->
+      <div class="tab-pane fade" id="tab-bill-expiring" data-testid="panel-bill-expiring">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <label class="form-label mb-0">到期天数阈值：</label>
+          <input id="expiry-days" type="number" value="30" min="1" max="365"
+                 class="form-control form-control-sm" style="width:90px"
+                 data-testid="expiry-days">
+          <button id="expiry-query" class="btn btn-sm btn-primary"
+                  data-testid="expiry-query">查询</button>
+          <span id="expiry-count" class="ms-2 text-muted small"
+                data-testid="expiry-count"></span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>票据号</th><th>类型</th><th>出票人</th>
+                <th class="text-end">金额</th><th>到期日</th>
+              </tr>
+            </thead>
+            <tbody id="expiry-tbody" data-testid="expiry-table">
+              <tr><td colspan="5" class="text-center text-muted py-4">请先点击查询</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 背书模态框 -->
+<div class="modal fade" id="endorseModal" tabindex="-1" data-testid="endorse-modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">背书转让</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>票据号：<strong id="endorse-bill-no" data-testid="endorse-bill-no"></strong></p>
+        <div class="mb-3">
+          <label class="form-label">被背书人 <span class="text-danger">*</span></label>
+          <input id="endorse-endorsee" type="text" class="form-control"
+                 placeholder="如：客户C" data-testid="endorse-endorsee">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">背书日期 <span class="text-danger">*</span></label>
+          <input id="endorse-date" type="date" class="form-control"
+                 data-testid="endorse-date">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">背书用途 <span class="text-danger">*</span></label>
+          <input id="endorse-purpose" type="text" class="form-control"
+                 placeholder="如：货款支付" data-testid="endorse-purpose">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button id="endorse-submit" type="button" class="btn btn-primary"
+                data-testid="endorse-submit">确认背书</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 贴现模态框 -->
+<div class="modal fade" id="discountModal" tabindex="-1" data-testid="discount-modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">票据贴现</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>票据号：<strong id="discount-bill-no" data-testid="discount-bill-no"></strong></p>
+        <p>票据金额：<strong id="discount-bill-amount" data-testid="discount-bill-amount"></strong></p>
+        <div class="mb-3">
+          <label class="form-label">贴现银行 <span class="text-danger">*</span></label>
+          <input id="discount-bank" type="text" class="form-control"
+                 placeholder="如：工商银行" data-testid="discount-bank">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">贴现利率（0~1）<span class="text-danger">*</span></label>
+          <input id="discount-rate" type="number" step="0.001" min="0.001" max="0.999"
+                 class="form-control" placeholder="如：0.035" data-testid="discount-rate">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">贴现金额（CNY）<span class="text-danger">*</span></label>
+          <input id="discount-amount" type="number" step="0.01" min="0.01"
+                 class="form-control" placeholder="0.00" data-testid="discount-amount">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">贴现日期 <span class="text-danger">*</span></label>
+          <input id="discount-date" type="date" class="form-control"
+                 data-testid="discount-date">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button id="discount-submit" type="button" class="btn btn-warning"
+                data-testid="discount-submit">确认贴现</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="common.js"></script>
+<script>
+if (!AUTH.guard()) throw new Error('unauthenticated');
+renderNav('bill');
+
+// 默认填今天日期
+const today = new Date().toISOString().slice(0, 10);
+document.getElementById('bill-issue-date').value = today;
+document.getElementById('endorse-date').value    = today;
+document.getElementById('discount-date').value   = today;
+
+// hash 跳到录入
+if (location.hash === '#create') {
+  bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-create-btn')).show();
+}
+
+// ── 加载票据列表 ───────────────────────────────────────────
+async function loadBills() {
+  const status   = document.getElementById('filter-status').value;
+  const billType = document.getElementById('filter-type').value;
+  let url        = '/bill/list';
+  const params   = [];
+  if (status)   params.push(`status=${encodeURIComponent(status)}`);
+  if (billType) params.push(`bill_type=${encodeURIComponent(billType)}`);
+  if (params.length) url += '?' + params.join('&');
+
+  const res = await GET(url);
+  if (!res || res.data?.code !== 200) return;
+
+  document.getElementById('bill-tbody').innerHTML =
+    res.data.data.map(b => `
+      <tr data-testid="bill-row-${b.bill_no}">
+        <td><code class="small">${b.bill_no}</code></td>
+        <td>${b.bill_type}</td>
+        <td>${b.drawer}</td>
+        <td>${b.acceptor ?? '—'}</td>
+        <td class="text-end">¥ ${fmtAmount(b.amount)}</td>
+        <td>${b.issue_date}</td>
+        <td>${b.due_date}</td>
+        <td>${statusBadge(b.status)}</td>
+        <td>
+          ${b.status === 'holding' ? `
+            <button class="btn btn-sm btn-outline-primary me-1 endorse-btn"
+                    data-no="${b.bill_no}" data-testid="endorse-btn-${b.bill_no}">背书</button>
+            <button class="btn btn-sm btn-outline-warning discount-btn"
+                    data-no="${b.bill_no}" data-amount="${b.amount}"
+                    data-testid="discount-btn-${b.bill_no}">贴现</button>
+          ` : '<span class="text-muted small">—</span>'}
+        </td>
+      </tr>`).join('') || emptyRow(9);
+
+  bindBillActions();
+}
+loadBills();
+document.getElementById('filter-status').addEventListener('change', loadBills);
+document.getElementById('filter-type').addEventListener('change',   loadBills);
+document.getElementById('bill-refresh').addEventListener('click',   loadBills);
+
+function bindBillActions() {
+  document.querySelectorAll('.endorse-btn').forEach(btn =>
+    btn.addEventListener('click', () => {
+      document.getElementById('endorse-bill-no').textContent = btn.dataset.no;
+      document.getElementById('endorse-endorsee').value = '';
+      document.getElementById('endorse-purpose').value  = '';
+      document.getElementById('endorse-date').value     = today;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('endorseModal')).show();
+    })
+  );
+  document.querySelectorAll('.discount-btn').forEach(btn =>
+    btn.addEventListener('click', () => {
+      document.getElementById('discount-bill-no').textContent     = btn.dataset.no;
+      document.getElementById('discount-bill-amount').textContent = `¥ ${fmtAmount(btn.dataset.amount)}`;
+      document.getElementById('discount-bank').value   = '';
+      document.getElementById('discount-rate').value   = '';
+      document.getElementById('discount-amount').value = '';
+      document.getElementById('discount-date').value   = today;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('discountModal')).show();
+    })
+  );
+}
+
+// ── 录入票据 ───────────────────────────────────────────────
+document.getElementById('create-bill-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn    = document.getElementById('create-bill-submit');
+  const result = document.getElementById('create-bill-result');
+  result.classList.add('d-none');
+  setLoading(btn, true);
+
+  const res = await POST('/bill/create', {
+    bill_type:  document.getElementById('bill-type').value,
+    drawer:     document.getElementById('bill-drawer').value,
+    acceptor:   document.getElementById('bill-acceptor').value,
+    payee:      document.getElementById('bill-payee').value,
+    amount:     parseFloat(document.getElementById('bill-amount').value),
+    issue_date: document.getElementById('bill-issue-date').value,
+    due_date:   document.getElementById('bill-due-date').value,
+  });
+  setLoading(btn, false);
+
+  if (res?.data?.code === 200) {
+    result.className = 'alert alert-success mt-3';
+    result.textContent = `录入成功！票据号：${res.data.data.bill_no}`;
+    result.classList.remove('d-none');
+    document.getElementById('create-bill-form').reset();
+    document.getElementById('bill-issue-date').value = today;
+    toast('票据录入成功', 'success');
+  } else {
+    result.className = 'alert alert-danger mt-3';
+    result.textContent = res?.data?.detail || '录入失败';
+    result.classList.remove('d-none');
+  }
+});
+
+// ── 背书 ───────────────────────────────────────────────────
+document.getElementById('endorse-submit').addEventListener('click', async () => {
+  const btn = document.getElementById('endorse-submit');
+  setLoading(btn, true);
+  const res = await POST('/bill/endorse', {
+    bill_no:     document.getElementById('endorse-bill-no').textContent,
+    endorsee:    document.getElementById('endorse-endorsee').value,
+    endorsed_at: document.getElementById('endorse-date').value,
+    purpose:     document.getElementById('endorse-purpose').value,
+  });
+  setLoading(btn, false);
+  bootstrap.Modal.getInstance(document.getElementById('endorseModal')).hide();
+
+  if (res?.data?.code === 200) { toast('背书成功', 'success'); loadBills(); }
+  else toast(res?.data?.detail || '背书失败', 'danger');
+});
+
+// ── 贴现 ───────────────────────────────────────────────────
+document.getElementById('discount-submit').addEventListener('click', async () => {
+  const btn = document.getElementById('discount-submit');
+  setLoading(btn, true);
+  const res = await POST('/bill/discount', {
+    bill_no:         document.getElementById('discount-bill-no').textContent,
+    bank_name:       document.getElementById('discount-bank').value,
+    discount_rate:   parseFloat(document.getElementById('discount-rate').value),
+    discount_amount: parseFloat(document.getElementById('discount-amount').value),
+    discount_date:   document.getElementById('discount-date').value,
+  });
+  setLoading(btn, false);
+  bootstrap.Modal.getInstance(document.getElementById('discountModal')).hide();
+
+  if (res?.data?.code === 200) { toast(`贴现成功，贴现金额：¥${fmtAmount(res.data.data.discount_amount)}`, 'success'); loadBills(); }
+  else toast(res?.data?.detail || '贴现失败', 'danger');
+});
+
+// ── 即将到期查询 ───────────────────────────────────────────
+async function queryExpiring() {
+  const days = document.getElementById('expiry-days').value || 30;
+  const res  = await GET(`/bill/expiring?days=${days}`);
+  if (!res || res.data?.code !== 200) return;
+  const bills = res.data.data;
+  document.getElementById('expiry-count').textContent = `共 ${res.data.total} 张`;
+  document.getElementById('expiry-tbody').innerHTML =
+    bills.map(b => `
+      <tr data-testid="expiry-row-${b.bill_no}">
+        <td><code class="small">${b.bill_no}</code></td>
+        <td>${b.bill_type}</td>
+        <td>${b.drawer}</td>
+        <td class="text-end">¥ ${fmtAmount(b.amount)}</td>
+        <td class="text-danger fw-semibold">${b.due_date}</td>
+      </tr>`).join('') || emptyRow(5, '该期限内无即将到期票据');
+}
+document.getElementById('expiry-query').addEventListener('click', queryExpiring);
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>登录 — 司库资金管理系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: linear-gradient(135deg, #1a3a6b 0%, #0d6efd 100%); min-height: 100vh; }
+    .login-card { border-radius: 1rem; box-shadow: 0 1rem 3rem rgba(0,0,0,.3); }
+    .system-title { font-size: 1.1rem; color: #6c757d; letter-spacing: .05em; }
+    .role-hint { font-size: .82rem; }
+  </style>
+</head>
+<body class="d-flex align-items-center justify-content-center">
+
+  <div class="col-11 col-sm-8 col-md-5 col-lg-4">
+    <div class="card login-card p-4">
+
+      <!-- 标题 -->
+      <div class="text-center mb-4">
+        <div style="font-size:2.5rem">🏛</div>
+        <h4 class="fw-bold mt-1 mb-0">司库资金管理系统</h4>
+        <p class="system-title mt-1">Treasury Management System</p>
+      </div>
+
+      <!-- 错误提示 -->
+      <div id="error-msg" class="alert alert-danger d-none" role="alert"
+           data-testid="error-msg"></div>
+
+      <!-- 登录表单 -->
+      <form id="login-form" novalidate>
+        <div class="mb-3">
+          <label for="username" class="form-label fw-semibold">用户名</label>
+          <input type="text" id="username" name="username"
+                 class="form-control form-control-lg"
+                 placeholder="请输入用户名"
+                 autocomplete="username"
+                 data-testid="username-input"
+                 required>
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label fw-semibold">密码</label>
+          <input type="password" id="password" name="password"
+                 class="form-control form-control-lg"
+                 placeholder="请输入密码"
+                 autocomplete="current-password"
+                 data-testid="password-input"
+                 required>
+        </div>
+        <button id="login-btn" type="submit"
+                class="btn btn-primary btn-lg w-100 mt-2"
+                data-testid="login-btn">
+          登 录
+        </button>
+      </form>
+
+      <!-- 快速填充提示（方便练习时快速切角色） -->
+      <div class="mt-4">
+        <p class="text-muted small text-center mb-2">快速填充测试账号：</p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center role-hint">
+          <button class="btn btn-outline-secondary btn-sm quick-fill"
+                  data-u="cashier01" data-p="123456" data-testid="quick-cashier">
+            出纳员
+          </button>
+          <button class="btn btn-outline-secondary btn-sm quick-fill"
+                  data-u="finance01" data-p="123456" data-testid="quick-finance">
+            财务
+          </button>
+          <button class="btn btn-outline-secondary btn-sm quick-fill"
+                  data-u="manager01" data-p="123456" data-testid="quick-manager">
+            经理
+          </button>
+          <button class="btn btn-outline-secondary btn-sm quick-fill"
+                  data-u="admin" data-p="admin123" data-testid="quick-admin">
+            管理员
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /card -->
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="common.js"></script>
+<script>
+  // 已登录则直接跳过
+  if (AUTH.getToken()) location.href = '/frontend/dashboard.html';
+
+  // 快速填充
+  document.querySelectorAll('.quick-fill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('username').value = btn.dataset.u;
+      document.getElementById('password').value = btn.dataset.p;
+    });
+  });
+
+  // 提交
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const loginBtn = document.getElementById('login-btn');
+    const errEl    = document.getElementById('error-msg');
+    errEl.classList.add('d-none');
+
+    setLoading(loginBtn, true);
+    const result = await POST('/auth/login', {
+      username: document.getElementById('username').value.trim(),
+      password: document.getElementById('password').value,
+    });
+    setLoading(loginBtn, false);
+
+    if (!result) return; // 网络错误，已有 toast
+    const { status, data } = result;
+
+    if (status === 200 && data.code === 200) {
+      AUTH.save(data.data.token, data.data.username, data.data.role);
+      location.href = '/frontend/dashboard.html';
+    } else {
+      errEl.textContent = data.detail || data.message || '用户名或密码错误';
+      errEl.classList.remove('d-none');
+    }
+  });
+</script>
+</body>
+</html>

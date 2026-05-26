@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>资金集中 — 司库资金管理系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f4f6fb; }
+    .page-section { background: #fff; border-radius: .75rem; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+    .pool-card { border-left: 4px solid #0d6efd; border-radius: .6rem; }
+    .nav-tabs .nav-link.active { font-weight: 600; }
+  </style>
+</head>
+<body>
+<div id="main-nav"></div>
+
+<div class="container-fluid py-4 px-4">
+  <h5 class="fw-bold mb-4">🏦 资金集中管理</h5>
+
+  <!-- 现金池信息卡 -->
+  <div id="pool-cards" class="row g-3 mb-4">
+    <div class="col-12 text-muted">加载中…</div>
+  </div>
+
+  <div class="page-section p-3">
+    <ul class="nav nav-tabs mb-4" data-testid="pool-tabs">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-members"
+                data-testid="tab-btn-members">成员账户</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-sweep-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-sweep"
+                data-testid="tab-btn-sweep">余额归集（上划/下拨）</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-interest"
+                data-testid="tab-btn-interest">利息计算</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history"
+                data-testid="tab-btn-history">归集记录</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- ① 成员账户 -->
+      <div class="tab-pane fade show active" id="tab-members" data-testid="panel-members">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">POOL001 — 集团现金池 成员</h6>
+          <button id="members-refresh" class="btn btn-sm btn-outline-secondary"
+                  data-testid="members-refresh">刷新</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>成员账户</th><th>账户名称</th>
+                <th class="text-end">当前余额（CNY）</th><th>加入日期</th>
+              </tr>
+            </thead>
+            <tbody id="members-tbody" data-testid="members-table">
+              <tr><td colspan="4" class="text-center text-muted py-4">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ② 余额归集 -->
+      <div class="tab-pane fade" id="tab-sweep" data-testid="panel-sweep">
+        <div class="row justify-content-center">
+          <div class="col-12 col-lg-6">
+            <h6 class="fw-bold mb-3">余额归集操作</h6>
+            <div class="alert alert-info small mb-3">
+              <strong>上划：</strong>子账户 → 主账户（资金集中）<br>
+              <strong>下拨：</strong>主账户 → 子账户（资金下发）
+            </div>
+            <form id="sweep-form" novalidate data-testid="sweep-form">
+              <div class="mb-3">
+                <label class="form-label">现金池 <span class="text-danger">*</span></label>
+                <select id="sweep-pool" class="form-select" data-testid="sweep-pool" required>
+                  <option value="">— 选择现金池 —</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">归集类型 <span class="text-danger">*</span></label>
+                <div class="d-flex gap-3" data-testid="sweep-type-group">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="sweepType"
+                           id="sweep-up" value="上划" checked
+                           data-testid="sweep-type-up">
+                    <label class="form-check-label" for="sweep-up">
+                      ⬆ 上划（子账户 → 主账户）
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="sweepType"
+                           id="sweep-down" value="下拨"
+                           data-testid="sweep-type-down">
+                    <label class="form-check-label" for="sweep-down">
+                      ⬇ 下拨（主账户 → 子账户）
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">成员账户 <span class="text-danger">*</span></label>
+                <select id="sweep-member" class="form-select"
+                        data-testid="sweep-member" required>
+                  <option value="">— 先选现金池 —</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">归集金额（CNY）<span class="text-danger">*</span></label>
+                <input id="sweep-amount" type="number" min="0.01" step="0.01"
+                       class="form-control" placeholder="0.00"
+                       data-testid="sweep-amount" required>
+              </div>
+              <button id="sweep-submit" type="submit"
+                      class="btn btn-primary px-4" data-testid="sweep-submit">
+                执行归集
+              </button>
+            </form>
+            <div id="sweep-result" class="alert mt-3 d-none"
+                 data-testid="sweep-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ 利息计算 -->
+      <div class="tab-pane fade" id="tab-interest" data-testid="panel-interest">
+        <div class="row justify-content-center">
+          <div class="col-12 col-lg-6">
+            <h6 class="fw-bold mb-3">利息计算（本金 × 年利率 × 天数 / 365）</h6>
+            <form id="interest-form" novalidate data-testid="interest-form">
+              <div class="mb-3">
+                <label class="form-label">现金池 <span class="text-danger">*</span></label>
+                <select id="int-pool" class="form-select" data-testid="int-pool" required>
+                  <option value="">— 选择现金池 —</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">账户号 <span class="text-danger">*</span></label>
+                <input id="int-account" type="text" class="form-control"
+                       placeholder="如：1002" data-testid="int-account" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">本金（CNY）<span class="text-danger">*</span></label>
+                <input id="int-principal" type="number" min="0.01" step="0.01"
+                       class="form-control" placeholder="0.00"
+                       data-testid="int-principal" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">计息天数 <span class="text-danger">*</span></label>
+                <input id="int-days" type="number" min="1"
+                       class="form-control" placeholder="如：30"
+                       data-testid="int-days" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">计息日期 <span class="text-danger">*</span></label>
+                <input id="int-date" type="date" class="form-control"
+                       data-testid="int-date" required>
+              </div>
+              <button id="interest-submit" type="submit"
+                      class="btn btn-success px-4" data-testid="interest-submit">
+                计算利息
+              </button>
+            </form>
+            <!-- 计算结果 -->
+            <div id="interest-result" class="card mt-3 d-none border-success"
+                 data-testid="interest-result">
+              <div class="card-body">
+                <h6 class="card-title text-success">计算结果</h6>
+                <table class="table table-sm mb-0">
+                  <tr><th>本金</th><td id="res-principal" data-testid="res-principal"></td></tr>
+                  <tr><th>年利率</th><td id="res-rate" data-testid="res-rate"></td></tr>
+                  <tr><th>天数</th><td id="res-days" data-testid="res-days"></td></tr>
+                  <tr class="table-success"><th>利息</th>
+                    <td class="fw-bold" id="res-interest" data-testid="res-interest"></td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ 归集记录 -->
+      <div class="tab-pane fade" id="tab-history" data-testid="panel-history">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">近期归集记录</h6>
+          <button id="history-refresh" class="btn btn-sm btn-outline-secondary"
+                  data-testid="history-refresh">刷新</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>归集单号</th><th>类型</th><th>调出账户</th>
+                <th>调入账户</th><th class="text-end">金额</th><th>日期</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody" data-testid="history-table">
+              <tr><td colspan="6" class="text-center text-muted py-4">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="common.js"></script>
+<script>
+if (!AUTH.guard()) throw new Error('unauthenticated');
+renderNav('pool');
+
+// hash 跳转
+if (location.hash === '#sweep') {
+  bootstrap.Tab.getOrCreateInstance(document.getElementById('tab-sweep-btn')).show();
+}
+
+// 初始化日期
+document.getElementById('int-date').value = new Date().toISOString().slice(0, 10);
+
+let _pools = [];
+
+// ── 加载现金池列表 ─────────────────────────────────────────
+async function loadPools() {
+  const res = await GET('/pool/list');
+  if (!res || res.data?.code !== 200) return;
+  _pools = res.data.data;
+
+  // 卡片
+  document.getElementById('pool-cards').innerHTML = _pools.map(p => `
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card pool-card p-3" data-testid="pool-card-${p.pool_no}">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="fw-bold">${p.pool_name}</div>
+            <small class="text-muted">${p.pool_no}</small>
+          </div>
+          ${statusBadge(p.status)}
+        </div>
+        <div class="mt-2 small">
+          <span class="text-muted">主账户：</span><code>${p.master_account}</code>　
+          <span class="text-muted">年利率：</span><span class="text-primary">${(p.interest_rate * 100).toFixed(2)}%</span>　
+          <span class="text-muted">成员数：</span><strong>${p.member_count}</strong>
+        </div>
+      </div>
+    </div>`).join('');
+
+  // 填充下拉
+  const opts = _pools.map(p => `<option value="${p.pool_no}">${p.pool_no} — ${p.pool_name}</option>`).join('');
+  ['sweep-pool', 'int-pool'].forEach(id => {
+    document.getElementById(id).innerHTML = '<option value="">— 选择现金池 —</option>' + opts;
+  });
+}
+loadPools();
+
+// ── 成员列表 ───────────────────────────────────────────────
+async function loadMembers() {
+  const res = await GET('/pool/POOL001/members');
+  if (!res || res.data?.code !== 200) return;
+  document.getElementById('members-tbody').innerHTML =
+    res.data.data.map(m => `
+      <tr data-testid="member-row-${m.member_account}">
+        <td><code>${m.member_account}</code></td>
+        <td>${m.account_name}</td>
+        <td class="text-end fw-semibold">¥ ${fmtAmount(m.balance)}</td>
+        <td>${m.join_date}</td>
+      </tr>`).join('') || emptyRow(4);
+}
+loadMembers();
+document.getElementById('members-refresh').addEventListener('click', loadMembers);
+
+// ── 选择现金池后加载成员到归集下拉 ─────────────────────────
+document.getElementById('sweep-pool').addEventListener('change', async function() {
+  const poolNo = this.value;
+  if (!poolNo) { document.getElementById('sweep-member').innerHTML = '<option value="">— 先选现金池 —</option>'; return; }
+  const res = await GET(`/pool/${poolNo}/members`);
+  if (!res || res.data?.code !== 200) return;
+  document.getElementById('sweep-member').innerHTML =
+    '<option value="">— 选择成员账户 —</option>' +
+    res.data.data.map(m =>
+      `<option value="${m.member_account}">${m.member_account} — ${m.account_name}（¥${fmtAmount(m.balance)}）</option>`
+    ).join('');
+});
+
+// ── 余额归集 ───────────────────────────────────────────────
+document.getElementById('sweep-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn    = document.getElementById('sweep-submit');
+  const result = document.getElementById('sweep-result');
+  result.classList.add('d-none');
+  setLoading(btn, true);
+
+  const sweepType = document.querySelector('input[name="sweepType"]:checked').value;
+  const res = await POST('/pool/sweep', {
+    pool_no:        document.getElementById('sweep-pool').value,
+    sweep_type:     sweepType,
+    member_account: document.getElementById('sweep-member').value,
+    amount:         parseFloat(document.getElementById('sweep-amount').value),
+  });
+  setLoading(btn, false);
+
+  if (res?.data?.code === 200) {
+    result.className = 'alert alert-success mt-3';
+    result.textContent = `${sweepType}成功！归集单号：${res.data.data.sweep_no}`;
+    result.classList.remove('d-none');
+    document.getElementById('sweep-amount').value = '';
+    toast(`${sweepType}成功`, 'success');
+    loadMembers();
+    loadHistory();
+  } else {
+    result.className = 'alert alert-danger mt-3';
+    result.textContent = res?.data?.detail || '归集失败';
+    result.classList.remove('d-none');
+  }
+});
+
+// ── 利息计算 ───────────────────────────────────────────────
+document.getElementById('interest-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('interest-submit');
+  setLoading(btn, true);
+  const res = await POST('/pool/interest/calc', {
+    pool_no:   document.getElementById('int-pool').value,
+    account_no: document.getElementById('int-account').value,
+    principal: parseFloat(document.getElementById('int-principal').value),
+    days:      parseInt(document.getElementById('int-days').value),
+    calc_date: document.getElementById('int-date').value,
+  });
+  setLoading(btn, false);
+
+  const resultEl = document.getElementById('interest-result');
+  if (res?.data?.code === 200) {
+    const d = res.data.data;
+    document.getElementById('res-principal').textContent = `¥ ${fmtAmount(d.principal)}`;
+    document.getElementById('res-rate').textContent      = `${(d.rate * 100).toFixed(2)}%`;
+    document.getElementById('res-days').textContent      = `${d.days} 天`;
+    document.getElementById('res-interest').textContent  = `¥ ${fmtAmount(d.interest)}`;
+    resultEl.classList.remove('d-none');
+    toast('利息计算完成', 'success');
+  } else {
+    resultEl.classList.add('d-none');
+    toast(res?.data?.detail || '计算失败', 'danger');
+  }
+});
+
+// ── 归集记录 ───────────────────────────────────────────────
+async function loadHistory() {
+  const res = await GET('/pool/sweep/history');
+  if (!res || res.data?.code !== 200) return;
+  document.getElementById('history-tbody').innerHTML =
+    res.data.data.map(s => `
+      <tr data-testid="sweep-row-${s.sweep_no}">
+        <td><code class="small">${s.sweep_no}</code></td>
+        <td>
+          <span class="badge ${s.sweep_type === '上划' ? 'text-bg-primary' : 'text-bg-info'}"
+                data-testid="sweep-type-badge">
+            ${s.sweep_type === '上划' ? '⬆ 上划' : '⬇ 下拨'}
+          </span>
+        </td>
+        <td><code>${s.from_account}</code></td>
+        <td><code>${s.to_account}</code></td>
+        <td class="text-end">¥ ${fmtAmount(s.amount)}</td>
+        <td>${s.sweep_date}</td>
+      </tr>`).join('') || emptyRow(6);
+}
+loadHistory();
+document.getElementById('history-refresh').addEventListener('click', loadHistory);
+</script>
+</body>
+</html>

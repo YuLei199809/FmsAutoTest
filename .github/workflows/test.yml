@@ -20,5 +20,11 @@ jobs:
       - name: 安装依赖
         run: pip install -r requirements.txt
 
+      - name: 启动后端服务
+        run: |
+          cd backend
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          sleep 3
+
       - name: 运行测试
-        run: pytest -m P0 -v
+        run: pytest -m -v

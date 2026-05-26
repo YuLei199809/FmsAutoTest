@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>资金管理 — 司库资金管理系统</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background: #f4f6fb; }
+    .page-section { background: #fff; border-radius: .75rem; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+    .nav-tabs .nav-link { color: #495057; }
+    .nav-tabs .nav-link.active { font-weight: 600; }
+    .approve-btn, .reject-btn { min-width: 58px; }
+  </style>
+</head>
+<body>
+<div id="main-nav"></div>
+
+<div class="container-fluid py-4 px-4">
+  <h5 class="fw-bold mb-4">💳 资金管理</h5>
+
+  <div class="page-section p-3">
+    <!-- Tab 导航 -->
+    <ul class="nav nav-tabs mb-4" id="fund-tabs" role="tablist" data-testid="fund-tabs">
+      <li class="nav-item">
+        <button class="nav-link active" id="tab-accounts-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-accounts"
+                data-testid="tab-btn-accounts">账户列表</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-payment-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-payment"
+                data-testid="tab-btn-payment">付款申请</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-approve-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-approve"
+                data-testid="tab-btn-approve">审批中心</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-transfer-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-transfer"
+                data-testid="tab-btn-transfer">内部调拨</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="tab-receipt-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-receipt"
+                data-testid="tab-btn-receipt">收款登记</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+
+      <!-- ① 账户列表 -->
+      <div class="tab-pane fade show active" id="tab-accounts" role="tabpanel"
+           data-testid="panel-accounts">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>账户号</th><th>开户行</th><th>账户名</th>
+                <th>币种</th><th class="text-end">余额</th><th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="accounts-tbody" data-testid="accounts-table">
+              <tr><td colspan="6" class="text-center text-muted py-4">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ② 付款申请 -->
+      <div class="tab-pane fade" id="tab-payment" role="tabpanel"
+           data-testid="panel-payment">
+        <div class="row justify-content-center">
+          <div class="col-12 col-lg-7">
+            <h6 class="fw-bold mb-3">发起付款申请</h6>
+            <form id="payment-form" novalidate data-testid="payment-form">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">付款账户 <span class="text-danger">*</span></label>
+                  <select id="pay-from" class="form-select" data-testid="pay-from" required>
+                    <option value="">— 选择账户 —</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">收款方名称 <span class="text-danger">*</span></label>
+                  <input id="pay-to-name" type="text" class="form-control"
+                         placeholder="如：供应商A" data-testid="pay-to-name" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">收款账号 <span class="text-danger">*</span></label>
+                  <input id="pay-to-account" type="text" class="form-control"
+                         placeholder="收款方账号" data-testid="pay-to-account" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">收款开户行 <span class="text-danger">*</span></label>
+                  <input id="pay-to-bank" type="text" class="form-control"
+                         placeholder="如：招商银行" data-testid="pay-to-bank" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">付款金额（CNY）<span class="text-danger">*</span></label>
+                  <input id="pay-amount" type="number" min="0.01" step="0.01"
+                         class="form-control" placeholder="0.00"
+                         data-testid="pay-amount" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">付款用途 <span class="text-danger">*</span></label>
+                  <input id="pay-purpose" type="text" class="form-control"
+                         placeholder="如：采购货款" data-testid="pay-purpose" required>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">备注</label>
+                  <textarea id="pay-remark" class="form-control" rows="2"
+                            placeholder="选填" data-testid="pay-remark"></textarea>
+                </div>
+                <div class="col-12">
+                  <button id="payment-submit" type="submit"
+                          class="btn btn-primary px-4" data-testid="payment-submit">
+                    提交申请
+                  </button>
+                </div>
+              </div>
+            </form>
+            <!-- 结果提示 -->
+            <div id="payment-result" class="alert mt-3 d-none"
+                 data-testid="payment-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ③ 审批中心 -->
+      <div class="tab-pane fade" id="tab-approve" role="tabpanel"
+           data-testid="panel-approve">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0">待审批付款列表</h6>
+          <div class="d-flex gap-2">
+            <select id="approve-filter" class="form-select form-select-sm"
+                    data-testid="approve-filter" style="width:120px">
+              <option value="">全部状态</option>
+              <option value="pending">审批中</option>
+              <option value="executed">已执行</option>
+              <option value="rejected">已拒绝</option>
+            </select>
+            <button id="approve-refresh" class="btn btn-sm btn-outline-secondary"
+                    data-testid="approve-refresh">刷新</button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>申请号</th><th>付款账户</th><th>收款方</th>
+                <th class="text-end">金额</th><th>当前步骤</th>
+                <th>状态</th><th>申请人</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="approve-tbody" data-testid="approve-table">
+              <tr><td colspan="8" class="text-center text-muted py-4">加载中…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ④ 内部调拨 -->
+      <div class="tab-pane fade" id="tab-transfer" role="tabpanel"
+           data-testid="panel-transfer">
+        <div class="row justify-content-center">
+          <div class="col-12 col-lg-6">
+            <h6 class="fw-bold mb-3">内部资金调拨</h6>
+            <form id="transfer-form" novalidate data-testid="transfer-form">
+              <div class="mb-3">
+                <label class="form-label">调出账户 <span class="text-danger">*</span></label>
+                <select id="tf-from" class="form-select" data-testid="tf-from" required>
+                  <option value="">— 选择账户 —</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">调入账户 <span class="text-danger">*</span></label>
+                <select id="tf-to" class="form-select" data-testid="tf-to" required>
+                  <option value="">— 选择账户 —</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">调拨金额（CNY）<span class="text-danger">*</span></label>
+                <input id="tf-amount" type="number" min="0.01" step="0.01"
+                       class="form-control" placeholder="0.00"
+                       data-testid="tf-amount" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">调拨类型 <span class="text-danger">*</span></label>
+                <select id="tf-type" class="form-select" data-testid="tf-type" required>
+                  <option value="调拨">调拨</option>
+                  <option value="上划">上划</option>
+                  <option value="下拨">下拨</option>
+                </select>
+              </div>
+              <button id="transfer-submit" type="submit"
+                      class="btn btn-primary px-4" data-testid="transfer-submit">
+                确认调拨
+              </button>
+            </form>
+            <div id="transfer-result" class="alert mt-3 d-none"
+                 data-testid="transfer-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⑤ 收款登记 -->
+      <div class="tab-pane fade" id="tab-receipt" role="tabpanel"
+           data-testid="panel-receipt">
+        <div class="row justify-content-center">
+          <div class="col-12 col-lg-6">
+            <h6 class="fw-bold mb-3">收款登记</h6>
+            <form id="receipt-form" novalidate data-testid="receipt-form">
+              <div class="mb-3">
+                <label class="form-label">收款账户 <span class="text-danger">*</span></label>
+                <select id="rc-to" class="form-select" data-testid="rc-to" required>
+                  <option value="">— 选择账户 —</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">付款方名称 <span class="text-danger">*</span></label>
+                <input id="rc-from-name" type="text" class="form-control"
+                       placeholder="如：客户B" data-testid="rc-from-name" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">收款金额（CNY）<span class="text-danger">*</span></label>
+                <input id="rc-amount" type="number" min="0.01" step="0.01"
+                       class="form-control" placeholder="0.00"
+                       data-testid="rc-amount" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">收款日期 <span class="text-danger">*</span></label>
+                <input id="rc-date" type="date" class="form-control"
+                       data-testid="rc-date" required>
+              </div>
+              <button id="receipt-submit" type="submit"
+                      class="btn btn-success px-4" data-testid="receipt-submit">
+                登记收款
+              </button>
+            </form>
+            <div id="receipt-result" class="alert mt-3 d-none"
+                 data-testid="receipt-result"></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /tab-content -->
+  </div><!-- /page-section -->
+</div>
+
+<!-- 审批模态框 -->
+<div class="modal fade" id="approveModal" tabindex="-1" data-testid="approve-modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="approveModalLabel">审批操作</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">申请号：<strong id="modal-req-no" data-testid="modal-req-no"></strong></p>
+        <p class="mb-3">金额：<strong id="modal-amount" data-testid="modal-amount"></strong></p>
+        <div class="mb-3">
+          <label class="form-label">审批意见</label>
+          <textarea id="modal-comment" class="form-control" rows="3"
+                    placeholder="选填" data-testid="modal-comment"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button id="modal-reject-btn" type="button" class="btn btn-danger"
+                data-testid="modal-reject-btn">拒绝</button>
+        <button id="modal-approve-btn" type="button" class="btn btn-success"
+                data-testid="modal-approve-btn">通过</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="common.js"></script>
+<script>
+if (!AUTH.guard()) throw new Error('unauthenticated');
+renderNav('fund');
+
+// ── 初始化日期 ──────────────────────────────────────────────
+document.getElementById('rc-date').value = new Date().toISOString().slice(0, 10);
+
+// ── 跳转 Tab（支持 URL hash 跳转）──────────────────────────
+function activateTabByHash() {
+  const hash = location.hash.replace('#', '');
+  const map  = { payment: 'tab-payment-btn', transfer: 'tab-transfer-btn',
+                 receipt:  'tab-receipt-btn',  approve: 'tab-approve-btn' };
+  if (map[hash]) {
+    bootstrap.Tab.getOrCreateInstance(document.getElementById(map[hash])).show();
+  }
+}
+activateTabByHash();
+
+// ── 加载账户到所有下拉框 ───────────────────────────────────
+async function loadAccounts() {
+  const res = await GET('/fund/accounts');
+  if (!res || res.data?.code !== 200) return;
+  const accounts = res.data.data.filter(a => a.status === 'active');
+
+  const opts = accounts.map(a =>
+    `<option value="${a.account_no}">${a.account_no} — ${a.account_name}（¥${fmtAmount(a.balance)}）</option>`
+  ).join('');
+  const placeholder = '<option value="">— 选择账户 —</option>';
+
+  ['pay-from', 'tf-from', 'tf-to', 'rc-to'].forEach(id => {
+    document.getElementById(id).innerHTML = placeholder + opts;
+  });
+
+  // 账户列表表格
+  document.getElementById('accounts-tbody').innerHTML =
+    res.data.data.map(a => `
+      <tr data-testid="account-row-${a.account_no}">
+        <td><code>${a.account_no}</code></td>
+        <td>${a.bank_name}</td>
+        <td>${a.account_name}</td>
+        <td>${a.currency}</td>
+        <td class="text-end fw-semibold">¥ ${fmtAmount(a.balance)}</td>
+        <td>${statusBadge(a.status)}</td>
+      </tr>`).join('') || emptyRow(6);
+}
+loadAccounts();
+
+// ── 付款申请 ───────────────────────────────────────────────
+document.getElementById('payment-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn    = document.getElementById('payment-submit');
+  const result = document.getElementById('payment-result');
+  result.classList.add('d-none');
+
+  setLoading(btn, true);
+  const res = await POST('/fund/payment/apply', {
+    from_account: document.getElementById('pay-from').value,
+    to_account:   document.getElementById('pay-to-account').value,
+    to_bank:      document.getElementById('pay-to-bank').value,
+    to_name:      document.getElementById('pay-to-name').value,
+    amount:       parseFloat(document.getElementById('pay-amount').value),
+    purpose:      document.getElementById('pay-purpose').value,
+    remark:       document.getElementById('pay-remark').value || null,
+  });
+  setLoading(btn, false);
+
+  if (res?.data?.code === 200) {
+    result.className = 'alert alert-success mt-3';
+    result.textContent = `申请成功！申请号：${res.data.data.req_no}，当前步骤：${res.data.data.current_step}`;
+    result.classList.remove('d-none');
+    document.getElementById('payment-form').reset();
+    toast('付款申请提交成功', 'success');
+    loadAccounts();
+  } else {
+    result.className = 'alert alert-danger mt-3';
+    result.textContent = res?.data?.detail || '提交失败';
+    result.classList.remove('d-none');
+  }
+});
+
+// ── 审批列表 ───────────────────────────────────────────────
+async function loadApprovals() {
+  const filter = document.getElementById('approve-filter').value;
+  const url    = '/fund/payment/list' + (filter ? `?status=${filter}` : '');
+  const res    = await GET(url);
+  if (!res || res.data?.code !== 200) return;
+
+  const myRole   = AUTH.getRole();
+  const payments = res.data.data;
+
+  document.getElementById('approve-tbody').innerHTML =
+    payments.map(p => {
+      const canApprove = p.status === 'pending' && p.current_step === myRole;
+      const actionBtn  = canApprove
+        ? `<button class="btn btn-sm btn-outline-primary approve-action"
+                   data-req="${p.req_no}" data-amount="${p.amount}"
+                   data-testid="approve-action-${p.req_no}">审批</button>`
+        : `<span class="text-muted small">—</span>`;
+      return `
+        <tr data-testid="approve-row-${p.req_no}">
+          <td><code class="small">${p.req_no}</code></td>
+          <td>${p.from_account}</td>
+          <td>${p.to_name}</td>
+          <td class="text-end">¥ ${fmtAmount(p.amount)}</td>
+          <td>${p.current_step || '—'}</td>
+          <td>${statusBadge(p.status)}</td>
+          <td>${p.created_by}</td>
+          <td>${actionBtn}</td>
+        </tr>`;
+    }).join('') || emptyRow(8);
+
+  // 绑定审批按钮
+  document.querySelectorAll('.approve-action').forEach(btn => {
+    btn.addEventListener('click', () => openApproveModal(btn.dataset.req, btn.dataset.amount));
+  });
+}
+loadApprovals();
+document.getElementById('approve-filter').addEventListener('change', loadApprovals);
+document.getElementById('approve-refresh').addEventListener('click', loadApprovals);
+
+// ── 审批模态框 ─────────────────────────────────────────────
+let _currentReqNo = null;
+const approveModal = new bootstrap.Modal(document.getElementById('approveModal'));
+
+function openApproveModal(reqNo, amount) {
+  _currentReqNo = reqNo;
+  document.getElementById('modal-req-no').textContent = reqNo;
+  document.getElementById('modal-amount').textContent  = `¥ ${fmtAmount(amount)}`;
+  document.getElementById('modal-comment').value = '';
+  approveModal.show();
+}
+
+async function doApprove(action) {
+  const btn     = document.getElementById(action === 'approve' ? 'modal-approve-btn' : 'modal-reject-btn');
+  const comment = document.getElementById('modal-comment').value;
+  setLoading(btn, true);
+  const res = await POST('/fund/payment/approve', {
+    req_no:  _currentReqNo,
+    action,
+    comment: comment || null,
+  });
+  setLoading(btn, false);
+  approveModal.hide();
+
+  if (res?.data?.code === 200) {
+    toast(res.data.message, 'success');
+    loadApprovals();
+  } else {
+    toast(res?.data?.detail || '操作失败', 'danger');
+  }
+}
+
+document.getElementById('modal-approve-btn').addEventListener('click', () => doApprove('approve'));
+document.getElementById('modal-reject-btn').addEventListener('click',  () => doApprove('reject'));
+
+// ── 内部调拨 ───────────────────────────────────────────────
+document.getElementById('transfer-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn    = document.getElementById('transfer-submit');
+  const result = document.getElementById('transfer-result');
+  result.classList.add('d-none');
+  setLoading(btn, true);
+
+  const res = await POST('/fund/transfer', {
+    from_account:  document.getElementById('tf-from').value,
+    to_account:    document.getElementById('tf-to').value,
+    amount:        parseFloat(document.getElementById('tf-amount').value),
+    transfer_type: document.getElementById('tf-type').value,
+  });
+  setLoading(btn, false);
+
+  if (res?.data?.code === 200) {
+    result.className = 'alert alert-success mt-3';
+    result.textContent = `调拨成功！流水号：${res.data.data.transfer_no}`;
+    result.classList.remove('d-none');
+    document.getElementById('transfer-form').reset();
+    toast('调拨成功', 'success');
+    loadAccounts();
+  } else {
+    result.className = 'alert alert-danger mt-3';
+    result.textContent = res?.data?.detail || '调拨失败';
+    result.classList.remove('d-none');
+  }
+});
+
+// ── 收款登记 ───────────────────────────────────────────────
+document.getElementById('receipt-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn    = document.getElementById('receipt-submit');
+  const result = document.getElementById('receipt-result');
+  result.classList.add('d-none');
+  setLoading(btn, true);
+
+  const res = await POST('/fund/receipt', {
+    to_account:   document.getElementById('rc-to').value,
+    from_name:    document.getElementById('rc-from-name').value,
+    amount:       parseFloat(document.getElementById('rc-amount').value),
+    receipt_date: document.getElementById('rc-date').value,
+  });
+  setLoading(btn, false);
+
+  if (res?.data?.code === 200) {
+    result.className = 'alert alert-success mt-3';
+    result.textContent = `登记成功！收款单号：${res.data.data.receipt_no}`;
+    result.classList.remove('d-none');
+    document.getElementById('receipt-form').reset();
+    document.getElementById('rc-date').value = new Date().toISOString().slice(0, 10);
+    toast('收款登记成功', 'success');
+    loadAccounts();
+  } else {
+    result.className = 'alert alert-danger mt-3';
+    result.textContent = res?.data?.detail || '登记失败';
+    result.classList.remove('d-none');
+  }
+});
+</script>
+</body>
+</html>
