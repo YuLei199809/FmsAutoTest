@@ -22,7 +22,7 @@ def test_get_accounts():
 
 @pytest.mark.P0
 def test_apply_payment():
-    resp = apply_payment("1100001",
+    resp = apply_payment("1001",
                          "1100002",
                          "招商银行",
                          "总公司资金池主账户",
@@ -36,4 +36,4 @@ def test_apply_payment():
     data = assert_success(resp,dict)
 
     assert "req_no" in data
-    assert data["current_step"] == "finance"
+    assert data["current_step"] == "manager"
