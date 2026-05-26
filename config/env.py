@@ -1,7 +1,11 @@
 #config/env.py
 from common.http_client import HttpClient
+from config.settings import config
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = config["base_url"]
+USERNAME = config["username"]
+PASSWORD = config["password"]
+
 
 #实例话化请求工具，全局唯一对象
 http = HttpClient(BASE_URL)
@@ -9,6 +13,6 @@ http = HttpClient(BASE_URL)
 TIMEOUT = 30
 
 HEADERS = {
-    "Content":"application:json"
+    "Content-Tpye":"application:json"
 }
 
